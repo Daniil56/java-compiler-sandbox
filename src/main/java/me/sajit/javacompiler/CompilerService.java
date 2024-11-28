@@ -1,4 +1,4 @@
-package me.sajit.examhub.javacompiler;
+package me.sajit.javacompiler;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
