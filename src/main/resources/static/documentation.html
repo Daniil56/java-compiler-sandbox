@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API Documentation - Java Code Compiler</title>
+
+    <!-- SEO Meta Tags -->
+    <meta name="description" content="Learn how to use our online Java compiler API. Easily compile and run Java code with optional arguments via our simple RESTful API.">
+    <meta name="keywords" content="Java API, compile Java code API, execute Java online, online compiler API, Java code runner">
+    <meta name="author" content="Sajit Khadka">
+    <meta name="robots" content="index, follow">
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f9;
+            padding: 20px;
+        }
+        h1, h2 {
+            text-align: center;
+        }
+        .content {
+            width: 80%;
+            margin: auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        pre {
+            background-color: #f1f1f1;
+            padding: 10px;
+            border-radius: 5px;
+            overflow-x: auto;
+        }
+        a {
+            color: #4CAF50;
+            text-decoration: none;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+<h1>API Documentation</h1>
+<div class="content">
+    <h2>How to Use the API</h2>
+    <p>The API allows you to compile and execute Java code with optional arguments. Below is an example of how to interact with it.</p>
+
+    <h3>Endpoint</h3>
+    <pre>POST /api/compile</pre>
+
+    <h3>Request Body</h3>
+    <pre>{
+    "code": "String",
+    "input": "String (optional)"
+}</pre>
+
+    <h3>Response</h3>
+    <pre>{
+    "status": "success" | "error",
+    "message": "String (output or error details)",
+    "errors": [
+        {
+            "line": Number,
+            "message": "String"
+        }
+    ]
+}</pre>
+
+    <h3>Example</h3>
+    <p>Use the following request with curl:</p>
+    <pre>
+curl -X POST https://yourwebsite.com/api/compile \
+-H "Content-Type: application/json" \
+-d '{
+    "code": "public class Main { public static void main(String[] args) { System.out.println(\"Hello, World!\"); } }",
+    "input": ""
+}'
+    </pre>
+</div>
+</body>
+</html>

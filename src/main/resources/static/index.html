@@ -3,12 +3,31 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Java Code Compiler Sandbox</title>
+    <title>Online Java Code Compiler Sandbox - Run Java Code Instantly</title>
+
+    <!-- SEO Meta Tags -->
+    <meta name="description" content="Run your Java code instantly in this online Java compiler sandbox. Supports custom arguments and provides detailed output with code highlighting.">
+    <meta name="keywords" content="Java compiler, online Java compiler, run Java code online, Java sandbox, compile Java code, execute Java code">
+    <meta name="author" content="Sajit Khadka">
+    <meta name="robots" content="index, follow">
+
+    <!-- Open Graph Meta Tags -->
+    <meta property="og:title" content="Online Java Code Compiler Sandbox - Run Java Code Instantly">
+    <meta property="og:description" content="Run your Java code instantly in this online Java compiler sandbox. Supports custom arguments and provides detailed output with code highlighting.">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://java-sandbox.sajit.me">
+    <meta property="og:image" content="https://java-sandbox.sajit.me/images/java-compiler-banner.png">
+
+    <!-- Twitter Card Meta Tags -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Online Java Code Compiler Sandbox - Run Java Code Instantly">
+    <meta name="twitter:description" content="Run your Java code instantly in this online Java compiler sandbox. Supports custom arguments and provides detailed output with code highlighting.">
+    <meta name="twitter:image" content="https://java-sandbox.sajit.me/images/java-compiler-banner.png">
 
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/theme/monokai.min.css">
-
     <style>
+        /* CSS styles remain the same */
         body {
             font-family: Arial, sans-serif;
             background-color: #f4f4f9;
@@ -59,14 +78,27 @@
             white-space: pre-wrap;
             color: #333;
         }
+        .nav-links {
+            text-align: center;
+            margin-top: 20px;
+        }
+        .nav-links a {
+            color: #4CAF50;
+            text-decoration: none;
+            font-weight: bold;
+            margin: 0 10px;
+        }
+        .nav-links a:hover {
+            text-decoration: underline;
+        }
     </style>
 </head>
+
 <body>
 <h1>Java Code Executor</h1>
 <div class="form-container">
     <form id="codeForm">
         <label for="javaCode">Java Code:</label>
-        <!-- Updated textarea without the 'required' attribute -->
         <textarea id="javaCode" name="javaCode" placeholder="Enter your Java code here"></textarea>
 
         <label for="args" style="margin-top: 10px">Arguments (optional, space-separated):</label>
@@ -76,6 +108,10 @@
     </form>
 
     <div class="output" id="output"></div>
+</div>
+
+<div class="nav-links">
+    <a href="/documentation.html">API Documentation</a>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.js"></script>
