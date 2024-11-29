@@ -9,9 +9,9 @@
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
 	<groupId>me.sajit</groupId>
-	<artifactId>examhub</artifactId>
+	<artifactId>online-java-compiler</artifactId>
 	<version>1.0.0</version>
-	<name>examhub</name>
+	<name>Java Compiler Sandox API</name>
 	<description>Exam Hub is backend for processing exam related functionalities</description>
 	<url/>
 	<licenses>
@@ -63,7 +63,7 @@
 						<image>openjdk:21-jdk-slim</image>
 					</from>
 					<to>
-						<image>sajit.me/${project.name}:${project.version}</image>
+						<image>sajit.me/${project.artifactId}:${project.version}</image>
 					</to>
 					<container>
 						<ports>

@@ -4,6 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Java Code Compiler Sandbox</title>
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/theme/monokai.min.css">
+
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -14,20 +18,18 @@
             text-align: center;
         }
         .form-container {
-            width: 60%;
+            width: 80%;
             margin: auto;
             background-color: white;
             padding: 20px;
             border-radius: 10px;
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
         }
-        textarea {
-            width: 100%;
-            height: 200px;
-            padding: 10px;
-            margin-bottom: 10px;
+        .CodeMirror {
+            height: 300px;
             border: 1px solid #ccc;
             border-radius: 5px;
+            margin-bottom: 10px;
         }
         input[type="text"], input[type="submit"] {
             width: 100%;
@@ -44,6 +46,10 @@
         input[type="submit"]:hover {
             background-color: #45a049;
         }
+        input[type="submit"]:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
         .output {
             margin-top: 20px;
             padding: 10px;
@@ -51,18 +57,20 @@
             border: 1px solid #ddd;
             border-radius: 5px;
             white-space: pre-wrap;
+            color: #333;
         }
     </style>
 </head>
 <body>
 <h1>Java Code Executor</h1>
 <div class="form-container">
-    <form id="codeForm" action="/api/compile" method="post">
+    <form id="codeForm">
         <label for="javaCode">Java Code:</label>
-        <textarea id="javaCode" name="javaCode" required placeholder="Enter your Java code here"></textarea>
+        <!-- Updated textarea without the 'required' attribute -->
+        <textarea id="javaCode" name="javaCode" placeholder="Enter your Java code here"></textarea>
 
-        <label for="args">Arguments (optional, comma separated):</label>
-        <input type="text" id="args" name="args" placeholder="Enter arguments for the Java program">
+        <label for="args" style="margin-top: 10px">Arguments (optional, space-separated):</label>
+        <input type="text" id="args" name="args" placeholder="Enter arguments for the Java program" style="margin-top: 10px">
 
         <input type="submit" value="Run Code">
     </form>
@@ -70,38 +78,71 @@
     <div class="output" id="output"></div>
 </div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/clike/clike.min.js"></script>
+
 <script>
+    const textArea = document.getElementById("javaCode");
+    const editor = CodeMirror.fromTextArea(textArea, {
+        mode: "text/x-java",
+        theme: "monokai",
+        lineNumbers: true,
+        autoCloseBrackets: true,
+        matchBrackets: true,
+        indentUnit: 4,
+        tabSize: 4,
+        indentWithTabs: false
+    });
+
     const form = document.getElementById("codeForm");
     const outputDiv = document.getElementById("output");
 
-    form.addEventListener("submit", function(event) {
-        event.preventDefault(); // Prevent the form from submitting normally
+    form.addEventListener('submit', async (event) => {
+        event.preventDefault();
 
-        const formData = new FormData(form);
+        const submitButton = event.target.querySelector('input[type="submit"]');
+        submitButton.disabled = true;
 
-        // Make an AJAX request to the Spring Boot backend
-        fetch('http://localhost:8080/api/compile', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                code: formData.get("javaCode"),
-                input: formData.get("args"),
-            }),
-        })
-            .then(response => response.json())
-            .then(data => {
-                if (data.status === "success") {
-                    outputDiv.textContent = "Output: \n" + data.message;
-                } else {
-                    outputDiv.textContent = "Error: \n" + data.message;
-                }
-            })
-            .catch(error => {
-                outputDiv.textContent = "An error occurred: " + error;
+        const javaCode = editor.getValue().trim();
+
+        if (!javaCode) {
+            alert('Please enter some Java code');
+            submitButton.disabled = false;
+            return;
+        }
+
+        const args = document.getElementById("args").value;
+        outputDiv.textContent = "Running...";
+
+        try {
+            const response = await fetch('/api/compile', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    code: javaCode,
+                    input: args,
+                }),
             });
+
+            const data = await response.json();
+            if (data.status === "success") {
+                outputDiv.textContent = "Output:\n" + data.message;
+            } else if (data.status === "error" && data.errors) {
+                const errorMessages = data.errors
+                    .map(error => `Line ${error.line}: ${error.message}`)
+                    .join('\n');
+                outputDiv.textContent = "Compilation Errors:\n" + errorMessages;
+            } else {
+                outputDiv.textContent = "Unknown error occurred.";
+            }
+        } catch (error) {
+            outputDiv.textContent = "An error occurred: " + error.message;
+        }
+        submitButton.disabled = false;
     });
+
 </script>
 </body>
 </html>
