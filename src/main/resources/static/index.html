@@ -103,7 +103,7 @@
         const submitButton = event.target.querySelector('input[type="submit"]');
         submitButton.disabled = true;
 
-        const javaCode = editor.getValue().trim();
+        const javaCode = editor.getValue();
 
         if (!javaCode) {
             alert('Please enter some Java code');

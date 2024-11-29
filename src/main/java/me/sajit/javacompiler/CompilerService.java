@@ -7,7 +7,6 @@ import javax.tools.*;
 import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -20,15 +19,29 @@ import java.util.stream.Collectors;
 public class CompilerService {
     private static final ExecutorService EXECUTOR = Executors.newCachedThreadPool();
 
+    private static String extractClassName(String sourceCode) {
+        Pattern pattern = Pattern.compile("\\bclass\\s+([A-Za-z_][A-Za-z0-9_]*)\\b");
+        Matcher matcher = pattern.matcher(sourceCode);
+        if (matcher.find()) {
+            return matcher.group(1);
+        }
+        return null;
+    }
+
     private Map<String, Object> validateInputArguments(String javaCode, String inputStr) {
         Map<String, Object> result = new HashMap<>();
         result.put("isValid", true);
         int expectedInputCount = countExpectedInputs(javaCode);
+        List<Map<String, Object>> errorDetails = new ArrayList<>();
+        Map<String, Object> errorInfo = new HashMap<>();
+
 
         if (expectedInputCount > 0 && (inputStr == null || inputStr.trim().isEmpty())) {
             result.put("isValid", false);
-            result.put("errorMessage", "Input required: Expected " + expectedInputCount + " input argument(s).");
-            result.put("line", findInputLineNumber(javaCode));
+            errorInfo.put("message", "Input required: Expected " + expectedInputCount + " input argument(s).");
+            errorInfo.put("line", findInputLineNumber(javaCode));
+            errorDetails.add(errorInfo);
+            result.put("errors", errorDetails);
             return result;
         }
 
@@ -37,15 +50,15 @@ public class CompilerService {
 
             if (inputArgs.length != expectedInputCount) {
                 result.put("isValid", false);
-                result.put("errorMessage", String.format(
+                errorInfo.put("message", String.format(
                         "Input mismatch: Expected %d input argument(s), but got %d.",
                         expectedInputCount,
-                        inputArgs.length
-                ));
-                result.put("line", findInputLineNumber(javaCode));
+                        inputArgs.length));
+                errorInfo.put("line", findInputLineNumber(javaCode));
+                errorDetails.add(errorInfo);
+                result.put("errors", errorDetails);
             }
         }
-
         return result;
     }
 
@@ -87,13 +100,16 @@ public class CompilerService {
         return -1;
     }
 
-    private static String extractClassName(String sourceCode) {
-        Pattern pattern = Pattern.compile("\\bclass\\s+([A-Za-z_][A-Za-z0-9_]*)\\b");
-        Matcher matcher = pattern.matcher(sourceCode);
-        if (matcher.find()) {
-            return matcher.group(1);
-        }
-        return null;
+    private ResponseEntity<Map<String, Object>> formatMessage(String status, String message) {
+        List<Map<String, Object>> errorDetails = new ArrayList<>();
+        Map<String, Object> errorInfo = new HashMap<>();
+        errorInfo.put("line", null);
+        errorInfo.put("message", message);
+        errorDetails.add(errorInfo);
+        return ResponseEntity.ok(Map.of(
+                "status", status,
+                "errors", errorDetails
+        ));
     }
 
     private ResponseEntity<Map<String, Object>> executeCodeWithInput(Path executionDir, String className, String input) {
@@ -136,14 +152,16 @@ public class CompilerService {
 
             String combinedOutput = (output + error).trim();
             String status = exitCode == 0 ? "success" : "error";
-
-            return ResponseEntity.ok(Map.of(
-                    "status", status,
-                    "message", combinedOutput.isEmpty() ? "No output" : combinedOutput
-            ));
+            if (status == "error")
+                return formatMessage(status, combinedOutput.isEmpty() ? "No output" : combinedOutput);
+            else
+                return ResponseEntity.ok(Map.of(
+                        "status", status,
+                        "message", combinedOutput.isEmpty() ? "No output" : combinedOutput
+                ));
 
         } catch (Exception e) {
-            return ResponseEntity.ok(Map.of("status", "error", "message", e.getMessage()));
+            return formatMessage("error", e.getMessage());
         }
     }
 
@@ -152,8 +170,7 @@ public class CompilerService {
         if (!(boolean) validationResult.get("isValid")) {
             return ResponseEntity.ok(Map.of(
                     "status", "error",
-                    "message", validationResult.get("errorMessage").toString(),
-                    "line", validationResult.get("line") != null ? validationResult.get("line") : null
+                    "errors", validationResult.get("errors")
             ));
         }
 
@@ -189,7 +206,7 @@ public class CompilerService {
                     // Adjust line number if possible
                     long lineNumber = diagnostic.getLineNumber();
                     if (lineNumber > 0) {
-                        errorInfo.put("line", (int)lineNumber);
+                        errorInfo.put("line", (int) lineNumber);
                     }
 
                     errorInfo.put("message", diagnostic.getMessage(null));
@@ -201,14 +218,9 @@ public class CompilerService {
                         "errors", errorDetails
                 ));
             }
-
             return executeCodeWithInput(requestTempDir, className, inputStr);
         } catch (Exception e) {
-            return ResponseEntity.ok(Map.of(
-                    "status", "error",
-                    "message", e.getMessage(),
-                    "line", null
-            ));
+            return formatMessage("error", e.getMessage());
         }
     }
 
@@ -218,4 +230,6 @@ public class CompilerService {
                 .map(Path::toFile)
                 .forEach(File::delete);
     }
+
+
 }
