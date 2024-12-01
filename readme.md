@@ -19,7 +19,7 @@ allows users to compile and execute Java code snippets securely and efficiently.
 ### Clone the Repository
 
 ```bash
-git clone https://github.com/your-repo/online-java-compiler.git
+git clone https://github.com/sajitkhadka/online-java-compiler.git
 cd online-java-compiler
 ```
 
