@@ -8,9 +8,7 @@ import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
+import java.util.concurrent.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -18,6 +16,8 @@ import java.util.stream.Collectors;
 @Service
 public class CompilerService {
     private static final ExecutorService EXECUTOR = Executors.newCachedThreadPool();
+    private static final int MAX_INPUT_COUNT = 100;
+    private static final int TIMEOUT = 10; //sec
 
     private static String extractClassName(String sourceCode) {
         Pattern pattern = Pattern.compile("\\bclass\\s+([A-Za-z_][A-Za-z0-9_]*)\\b");
@@ -33,11 +33,16 @@ public class CompilerService {
         result.put("isValid", true);
         int expectedInputCount = countExpectedInputs(javaCode);
         List<Map<String, Object>> errorDetails = new ArrayList<>();
-        Map<String, Object> errorInfo = new HashMap<>();
 
+        // If no inputs are expected, return valid
+        if (expectedInputCount == 0) {
+            return result;
+        }
 
-        if (expectedInputCount > 0 && (inputStr == null || inputStr.trim().isEmpty())) {
+        // If input is empty and inputs are expected
+        if (inputStr == null || inputStr.trim().isEmpty()) {
             result.put("isValid", false);
+            Map<String, Object> errorInfo = new HashMap<>();
             errorInfo.put("message", "Input required: Expected " + expectedInputCount + " input argument(s).");
             errorInfo.put("line", findInputLineNumber(javaCode));
             errorDetails.add(errorInfo);
@@ -45,20 +50,21 @@ public class CompilerService {
             return result;
         }
 
-        if (inputStr != null && !inputStr.trim().isEmpty()) {
-            String[] inputArgs = inputStr.trim().split("\\s+");
+        // Check input count
+        String[] inputArgs = inputStr.trim().split("\\s+");
 
-            if (inputArgs.length != expectedInputCount) {
-                result.put("isValid", false);
-                errorInfo.put("message", String.format(
-                        "Input mismatch: Expected %d input argument(s), but got %d.",
-                        expectedInputCount,
-                        inputArgs.length));
-                errorInfo.put("line", findInputLineNumber(javaCode));
-                errorDetails.add(errorInfo);
-                result.put("errors", errorDetails);
-            }
+        if (inputArgs.length < expectedInputCount) {
+            result.put("isValid", false);
+            Map<String, Object> errorInfo = new HashMap<>();
+            errorInfo.put("message", String.format(
+                    "Input mismatch: Expected %d input argument(s), but got %d.",
+                    expectedInputCount,
+                    inputArgs.length));
+            errorInfo.put("line", findInputLineNumber(javaCode));
+            errorDetails.add(errorInfo);
+            result.put("errors", errorDetails);
         }
+
         return result;
     }
 
@@ -86,7 +92,6 @@ public class CompilerService {
 
         return inputCount;
     }
-
     private int findInputLineNumber(String javaCode) {
         String[] lines = javaCode.split("\n");
         for (int i = 0; i < lines.length; i++) {
@@ -103,7 +108,7 @@ public class CompilerService {
     private ResponseEntity<Map<String, Object>> formatMessage(String status, String message) {
         List<Map<String, Object>> errorDetails = new ArrayList<>();
         Map<String, Object> errorInfo = new HashMap<>();
-        errorInfo.put("line", null);
+        errorInfo.put("line", 0);
         errorInfo.put("message", message);
         errorDetails.add(errorInfo);
         return ResponseEntity.ok(Map.of(
@@ -114,20 +119,47 @@ public class CompilerService {
 
     private ResponseEntity<Map<String, Object>> executeCodeWithInput(Path executionDir, String className, String input) {
         try {
+            // First, validate input count strictly before execution
+            String javaCode = Files.readString(executionDir.resolve(className + ".java"));
+            int expectedInputCount = countExpectedInputs(javaCode);
+
+
+            // Split and validate inputs
+            String[] inputs = input == null ? new String[0] : input.trim().split("\\s+");
+
+            if (inputs.length < expectedInputCount) {
+                return formatMessage("error", String.format(
+                        "Insufficient input: Expected %d input argument(s), but got %d.",
+                        expectedInputCount, inputs.length
+                ));
+            }
+            else if(inputs.length > MAX_INPUT_COUNT){
+                return formatMessage("error", String.format(
+                        "Too many input: Expected less than %d input argument(s), but got %d.", MAX_INPUT_COUNT, inputs.length));
+            }
+
             ProcessBuilder processBuilder = new ProcessBuilder("java", "-cp", executionDir.toString(), className);
             Process process = processBuilder.start();
 
-            Future<Void> inputFuture = null;
-            if (input != null && !input.trim().isEmpty()) {
-                inputFuture = EXECUTOR.submit(() -> {
-                    try (PrintWriter processInput = new PrintWriter(process.getOutputStream(), true)) {
-                        String[] inputs = input.trim().split("\\s+");
-                        for (String arg : inputs) {
-                            processInput.println(arg);
-                        }
+            // Input handling
+            CompletableFuture<Void> inputFuture = CompletableFuture.runAsync(() -> {
+                try (PrintWriter processInput = new PrintWriter(process.getOutputStream(), true)) {
+                    for (String arg : inputs) {
+                        processInput.println(arg);
+                        processInput.flush();
                     }
-                    return null;
-                });
+                    processInput.close();
+                } catch (Exception e) {
+                    // Log input writing exception
+                    System.out.println(e.getMessage());
+                }
+            }, EXECUTOR);
+
+            boolean processExited = process.waitFor(TIMEOUT, TimeUnit.SECONDS);
+
+            if (!processExited) {
+                process.destroyForcibly();
+                return formatMessage("error", "Execution timed out");
             }
 
             Future<String> outputFuture = EXECUTOR.submit(() -> {
@@ -142,29 +174,27 @@ public class CompilerService {
                 }
             });
 
-            int exitCode = process.waitFor();
+            inputFuture.get(TIMEOUT, TimeUnit.SECONDS);
+            String output = outputFuture.get(TIMEOUT, TimeUnit.SECONDS);
+            String error = errorFuture.get(TIMEOUT, TimeUnit.SECONDS);
 
-            String output = outputFuture.get();
-            String error = errorFuture.get();
-
-            // Clean up temporary execution directory
             deleteDirectory(executionDir);
-
             String combinedOutput = (output + error).trim();
+            int exitCode = process.exitValue();
             String status = exitCode == 0 ? "success" : "error";
-            if (status == "error")
-                return formatMessage(status, combinedOutput.isEmpty() ? "No output" : combinedOutput);
-            else
+            if (status.equals("error")) {
+                return formatMessage(status, combinedOutput.isEmpty() ? "Execution failed" : combinedOutput);
+            } else {
                 return ResponseEntity.ok(Map.of(
                         "status", status,
                         "message", combinedOutput.isEmpty() ? "No output" : combinedOutput
                 ));
+            }
 
         } catch (Exception e) {
             return formatMessage("error", e.getMessage());
         }
     }
-
     public ResponseEntity<Map<String, Object>> compile(String javaCode, String inputStr) {
         Map<String, Object> validationResult = validateInputArguments(javaCode, inputStr);
         if (!(boolean) validationResult.get("isValid")) {
@@ -188,7 +218,6 @@ public class CompilerService {
             DiagnosticCollector<JavaFileObject> diagnostics = new DiagnosticCollector<>();
             StandardJavaFileManager fileManager = compiler.getStandardFileManager(diagnostics, null, null);
 
-            // Set compilation output directory to the unique request directory
             List<String> compilationOptions = Arrays.asList("-d", requestTempDir.toString());
             Iterable<? extends JavaFileObject> compilationUnits = fileManager.getJavaFileObjectsFromFiles(Arrays.asList(sourceFile.toFile()));
             JavaCompiler.CompilationTask task = compiler.getTask(null, fileManager, diagnostics, compilationOptions, null, compilationUnits);
@@ -196,14 +225,10 @@ public class CompilerService {
             boolean compilationSuccess = task.call();
 
             if (!compilationSuccess) {
-                // Clean up the temporary directory on compilation failure
-
-
-                List<Map<String, Object>> errorDetails = new ArrayList<>();
+                 List<Map<String, Object>> errorDetails = new ArrayList<>();
                 for (Diagnostic<? extends JavaFileObject> diagnostic : diagnostics.getDiagnostics()) {
                     Map<String, Object> errorInfo = new HashMap<>();
 
-                    // Adjust line number if possible
                     long lineNumber = diagnostic.getLineNumber();
                     if (lineNumber > 0) {
                         errorInfo.put("line", (int) lineNumber);
