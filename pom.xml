@@ -76,7 +76,11 @@
 						<image>openjdk:21-jdk-slim</image>
 					</from>
 					<to>
-						<image>sajit.me/${project.artifactId}:${project.version}</image>
+						<image>${project.artifactId}</image>
+						<tags>
+							<tag>${project.version}</tag>
+							<tag>latest</tag>
+						</tags>
 					</to>
 					<container>
 						<ports>

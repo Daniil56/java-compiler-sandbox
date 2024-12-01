@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/x-icon" href="/images/favicon.ico">
     <title>API Documentation - Java Code Compiler</title>
 
     <!-- SEO Meta Tags -->
@@ -41,10 +42,23 @@
         a:hover {
             text-decoration: underline;
         }
+        .nav-links {
+            text-align: center;
+            margin-top: 20px;
+        }
+        .nav-links a {
+            color: #4BB;
+            text-decoration: none;
+            font-weight: bold;
+            margin: 0 10px;
+        }
+        .nav-links a:hover {
+            text-decoration: underline;
+        }
     </style>
 </head>
 <body>
-<h1>API Documentation</h1>
+<h1 style="font-size: 25px; ">API Documentation</h1>
 <div class="content">
     <h2>How to Use the API</h2>
     <p>The API allows you to compile and execute Java code with optional arguments. Below is an example of how to interact with it.</p>
@@ -80,6 +94,9 @@ curl -X POST https://java-sandbox.sajit.me/api/compile \
     "input": ""
 }'
     </pre>
+</div>
+<div class="nav-links">
+    <a href="https://github.com/sajitkhadka/java-compiler-sandbox">Github</a>
 </div>
 </body>
 </html>
