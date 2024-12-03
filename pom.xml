@@ -10,7 +10,7 @@
 	</parent>
 	<groupId>me.sajit</groupId>
 	<artifactId>online-java-compiler</artifactId>
-	<version>1.0.0</version>
+	<version>1.0.1</version>
 	<name>Java Compiler Sandox API</name>
 	<description>Exam Hub is backend for processing exam related functionalities</description>
 	<url/>

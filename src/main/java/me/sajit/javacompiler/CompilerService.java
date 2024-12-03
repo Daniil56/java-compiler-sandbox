@@ -17,7 +17,7 @@ import java.util.stream.Collectors;
 public class CompilerService {
     private static final ExecutorService EXECUTOR = Executors.newCachedThreadPool();
     private static final int MAX_INPUT_COUNT = 100;
-    private static final int TIMEOUT = 10; //sec
+    private static final int TIMEOUT = 5; //sec
 
     private static String extractClassName(String sourceCode) {
         Pattern pattern = Pattern.compile("\\bclass\\s+([A-Za-z_][A-Za-z0-9_]*)\\b");
@@ -119,12 +119,9 @@ public class CompilerService {
 
     private ResponseEntity<Map<String, Object>> executeCodeWithInput(Path executionDir, String className, String input) {
         try {
-            // First, validate input count strictly before execution
             String javaCode = Files.readString(executionDir.resolve(className + ".java"));
             int expectedInputCount = countExpectedInputs(javaCode);
 
-
-            // Split and validate inputs
             String[] inputs = input == null ? new String[0] : input.trim().split("\\s+");
 
             if (inputs.length < expectedInputCount) {
@@ -141,7 +138,6 @@ public class CompilerService {
             ProcessBuilder processBuilder = new ProcessBuilder("java", "-cp", executionDir.toString(), className);
             Process process = processBuilder.start();
 
-            // Input handling
             CompletableFuture<Void> inputFuture = CompletableFuture.runAsync(() -> {
                 try (PrintWriter processInput = new PrintWriter(process.getOutputStream(), true)) {
                     for (String arg : inputs) {
@@ -150,7 +146,6 @@ public class CompilerService {
                     }
                     processInput.close();
                 } catch (Exception e) {
-                    // Log input writing exception
                     System.out.println(e.getMessage());
                 }
             }, EXECUTOR);
