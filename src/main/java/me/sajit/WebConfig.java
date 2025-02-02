@@ -11,9 +11,7 @@ public class WebConfig implements WebMvcConfigurer {
     public void addCorsMappings(CorsRegistry registry) {
         registry.addMapping("/**")
                 .allowedOrigins("http://localhost:3000",
-                        "https://www.sajit.me",
-                        "https://exam.sajit.me",
-                        "https://java-sandbox.sajit.me"
+                        "https://mentee-power.getcourse.ru"
                 )
                 .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
                 .allowedHeaders("*")
