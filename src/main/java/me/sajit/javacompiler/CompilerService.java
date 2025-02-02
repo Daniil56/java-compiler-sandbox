@@ -1,5 +1,6 @@
 package me.sajit.javacompiler;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
@@ -12,12 +13,21 @@ import java.util.concurrent.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import me.sajit.javacompiler.HttpRequestValidator;
+import me.sajit.javacompiler.CodeValidator;
 
 @Service
 public class CompilerService {
     private static final ExecutorService EXECUTOR = Executors.newCachedThreadPool();
     private static final int MAX_INPUT_COUNT = 100;
     private static final int TIMEOUT = 5; //sec
+
+    private final List<CodeValidator> validators;
+
+    @Autowired
+    public CompilerService(HttpRequestValidator httpRequestValidator) {
+        this.validators = List.of(httpRequestValidator);
+    }
 
     private static String extractClassName(String sourceCode) {
         Pattern pattern = Pattern.compile("\\bclass\\s+([A-Za-z_][A-Za-z0-9_]*)\\b");
@@ -191,6 +201,13 @@ public class CompilerService {
         }
     }
     public ResponseEntity<Map<String, Object>> compile(String javaCode, String inputStr) {
+        // Проверка с использованием всех валидаторов
+        for (CodeValidator validator : validators) {
+            if (!validator.validate(javaCode)) {
+                return formatMessage("error", "HTTP requests are not allowed in the code.");
+            }
+        }
+
         Map<String, Object> validationResult = validateInputArguments(javaCode, inputStr);
         if (!(boolean) validationResult.get("isValid")) {
             return ResponseEntity.ok(Map.of(
