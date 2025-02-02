@@ -83,7 +83,7 @@
 						<image>openjdk:21-jdk-slim</image>
 					</from>
 					<to>
-						<image>${project.artifactId}</image>
+						<image>daniil56/${project.artifactId}</image>
 						<tags>
 							<tag>${project.version}</tag>
 							<tag>latest</tag>
