@@ -42,5 +42,8 @@ jobs:
 
     - name: Build and push Docker image
       run: |
-        mvn compile jib:build -Djib.to.auth.username=${{ secrets.DOCKER_USERNAME }} -Djib.to.auth.password=${{ secrets.DOCKER_PASSWORD }} -Dimage=${{ github.repository_owner }}/${{ github.repository.name }}:${{ github.sha }}
-  
+        REPO_NAME=$(echo ${{ github.repository }} | awk -F'/' '{print $2}')
+        mvn compile jib:build \
+        -Djib.to.auth.username=${{ secrets.DOCKER_USERNAME }} \
+        -Djib.to.auth.password=${{ secrets.DOCKER_PASSWORD }} \
+        -Dimage=${{ github.repository_owner }}/${REPO_NAME}:${{ github.sha }}
