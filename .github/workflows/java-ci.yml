@@ -43,6 +43,7 @@ jobs:
     - name: Get project name
       run: |
         echo "PROJECT_NAME=$(mvn help:evaluate -Dexpression=project.name -q -DforceStdout)" >> $GITHUB_ENV
+        source $GITHUB_ENV
         echo "Project Name: $PROJECT_NAME"
 
     - name: Build and push Docker image
