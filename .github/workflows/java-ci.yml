@@ -41,12 +41,13 @@ jobs:
         password: ${{ secrets.DOCKER_PASSWORD }}
 
     - name: Get project name
-      run: |
-        echo "PROJECT_NAME=$(mvn help:evaluate -Dexpression=project.name -q -DforceStdout)" >> $GITHUB_ENV
-        source $GITHUB_ENV
-        echo "Project Name: $PROJECT_NAME"
+      id: get_project_name
+      run: echo "PROJECT_NAME=$(mvn help:evaluate -Dexpression=project.name -q -DforceStdout)"
+
+    - name: Echo project name
+      run: echo "Project Name: ${{ steps.get_project_name.outputs.PROJECT_NAME }}"
 
     - name: Build and push Docker image
       run: |
-        mvn compile jib:build -Djib.to.auth.username=${{ secrets.DOCKER_USERNAME }} -Djib.to.auth.password=${{ secrets.DOCKER_PASSWORD }} -Dimage=${{ github.repository_owner }}/${{ env.PROJECT_NAME }}:${{ github.sha }}
+        mvn compile jib:build -Djib.to.auth.username=${{ secrets.DOCKER_USERNAME }} -Djib.to.auth.password=${{ secrets.DOCKER_PASSWORD }} -Dimage=${{ github.repository_owner }}/${{ steps.get_project_name.outputs.PROJECT_NAME }}:${{ github.sha }}
   
