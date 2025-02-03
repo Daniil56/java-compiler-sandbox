@@ -13,7 +13,6 @@ on:
 jobs:
   build:
     environment: sandbox-java
-
     runs-on: ubuntu-latest
 
     steps:
@@ -43,4 +42,5 @@ jobs:
 
     - name: Build and push Docker image
       run: |
-        mvn compile jib:build -Djib.to.auth.username=${{ secrets.DOCKER_USERNAME }} -Djib.to.auth.password=${{ secrets.DOCKER_PASSWORD }} 
+        mvn compile jib:build -Djib.to.auth.username=${{ secrets.DOCKER_USERNAME }} -Djib.to.auth.password=${{ secrets.DOCKER_PASSWORD }} -Dimage=daniil56/${{ github.sha }}
+  
