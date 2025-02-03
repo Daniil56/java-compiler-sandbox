@@ -41,8 +41,7 @@ jobs:
         password: ${{ secrets.DOCKER_PASSWORD }}
 
     - name: Get project name
-      id: get_project_name
-      run: echo "PROJECT_NAME=$(mvn help:evaluate -Dexpression=project.name -q -DforceStdout)" >> $GITHUB_ENV
+      run: echo "PROJECT_NAME=$(grep 'spring.application.name' src/main/resources/application.properties | cut -d '=' -f2)" >> $GITHUB_ENV
 
     - name: Echo project name
       run: |

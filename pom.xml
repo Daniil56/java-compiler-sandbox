@@ -29,7 +29,6 @@
 	</scm>
 	<properties>
 		<java.version>21</java.version>
-		<project.name>${project.groupId}</project.name>
 	</properties>
 	<dependencies>
 
